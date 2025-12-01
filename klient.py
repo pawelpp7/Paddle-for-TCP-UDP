@@ -136,7 +136,7 @@ class PongClient:
 
 
     def draw(self):
-        self.screen.fill((0,0,0))
+        self.screen.fill((255,255,255))
         ball_x, ball_y = self.state['ball']
         pygame.draw.circle(self.screen,(255,255,255),(int(ball_x),int(ball_y)),8)
 

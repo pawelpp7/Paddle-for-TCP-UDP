@@ -221,19 +221,31 @@ class PongServer:
             self._broadcast_state()
             time.sleep(TICK)
 
+    def _reset_round(self):
+        g = self.game
+        g.ball_x, g.ball_y = WIDTH / 2, HEIGHT / 2
+        angle = random.uniform(-0.7, 0.7)
+        g.ball_vx = BALL_SPEED * (1 if random.random() < 0.5 else -1)
+        g.ball_vy = BALL_SPEED * angle
+
     def _update_game(self, dt):
         g = self.game
         g.ball_x += g.ball_vx * dt
         g.ball_y += g.ball_vy * dt
 
-        if g.ball_x <= 0:
-            g.ball_vx = abs(g.ball_vx)
-        if g.ball_x >= WIDTH:
-            g.ball_vx = -abs(g.ball_vx)
-        if g.ball_y <= 0:
-            g.ball_vy = abs(g.ball_vy)
-        if g.ball_y >= HEIGHT:
-            g.ball_vy = -abs(g.ball_vy)
+        # if g.ball_x <= 0:
+        #     g.ball_vx = abs(g.ball_vx)
+        # if g.ball_x >= WIDTH:
+        #     g.ball_vx = -abs(g.ball_vx)
+        # if g.ball_y <= 0:
+        #     g.ball_vy = abs(g.ball_vy)
+        # if g.ball_y >= HEIGHT:
+        #     g.ball_vy = -abs(g.ball_vy)
+
+        # If ball leaves the frame → restart round
+        if g.ball_x < 0 or g.ball_x > WIDTH or g.ball_y < 0 or g.ball_y > HEIGHT:
+            self._reset_round()
+            return
 
         if g.ball_x <= 10 and abs(g.ball_y - g.paddles['LEFT']) < PADDLE_SIZE/2:
             g.ball_vx = abs(g.ball_vx)
@@ -341,7 +353,7 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-        screen.fill((12, 12, 12))
+        screen.fill((255, 255, 255))
 
         draw_game_area(screen, 10, 10, tcp_server.game, font, title=f"TCP Server (port {tcp_port})", clients=tcp_server.clients)
 
@@ -357,13 +369,13 @@ def main():
 
 
 def draw_game_area(screen, x_off, y_off, game, font, title="", clients=None):
-    pygame.draw.rect(screen, (20,20,20), (x_off-2, y_off-2, WIDTH+4, HEIGHT+4))
-    pygame.draw.circle(screen, (255,255,255), (int(x_off + game.ball_x), int(y_off + game.ball_y)), 8)
+    pygame.draw.rect(screen, (255,218,185), (x_off-2, y_off-2, WIDTH+4, HEIGHT+4))
+    pygame.draw.circle(screen, (255,0,255), (int(x_off + game.ball_x), int(y_off + game.ball_y)), 8)
     pygame.draw.rect(screen, (0,200,0), (x_off + 0, int(y_off + game.paddles['LEFT'] - PADDLE_SIZE/2), 10, PADDLE_SIZE))
     pygame.draw.rect(screen, (200,0,0), (x_off + WIDTH - 10, int(y_off + game.paddles['RIGHT'] - PADDLE_SIZE/2), 10, PADDLE_SIZE))
     pygame.draw.rect(screen, (0,0,200), (x_off + int(game.paddles['BOTTOM'] - PADDLE_SIZE/2), y_off + HEIGHT - 10, PADDLE_SIZE, 10))
     pygame.draw.rect(screen, (60,60,60), (x_off, y_off, WIDTH, HEIGHT), 2)
-    title_surf = font.render(title, True, (240,240,0))
+    title_surf = font.render(title, True, (12,12,12))
     screen.blit(title_surf, (x_off, y_off + HEIGHT + 6))
 
 
@@ -374,7 +386,7 @@ def draw_game_area(screen, x_off, y_off, game, font, title="", clients=None):
             txt = (f"{c.side} | Sent:{c.sent} Recv:{c.pkt_recv} "
                    f"Bytes:{c.bytes_sent} Δt:{c.avg_interval:.1f}ms "
                    f"Msg:{c.avg_msg_size:.0f}B Ping:{ping:.1f}ms")
-            surf = font.render(txt, True, (200,200,200))
+            surf = font.render(txt, True, (12,12,12))
             screen.blit(surf, (x_off, y_off + HEIGHT + 26 + i * 18))
             i += 1
 
