@@ -9,12 +9,11 @@ import pygame
 import struct
 from tcp_json import recv_tcp_json, send_tcp_json
 
-WIDTH, HEIGHT = 600, 600
+WIDTH, HEIGHT = 500, 500
 PADDLE_SPEED = 100
 PADDLE_SIZE = 80
 FPS = 60
 
-# --- Klient GUI ---
 class PongClient:
     def __init__(self, host, port=5000, protocol='tcp'):
         pygame.init()
@@ -27,6 +26,7 @@ class PongClient:
         self.port = port
         self.protocol = protocol
         self.side = None
+        self.is_bot = False
         self.state = {
             'ball': (WIDTH/2, HEIGHT/2),
             'paddles': {'LEFT': HEIGHT/2, 'RIGHT': HEIGHT/2, 'BOTTOM': WIDTH/2},
@@ -39,11 +39,13 @@ class PongClient:
         if protocol=='tcp':
             self.sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
             self.sock.connect((host,port))
+            send_tcp_json(self.sock, {'type':'register'})
             threading.Thread(target=self.tcp_recv_loop,daemon=True).start()
         elif protocol=='udp':
             self.sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
             self.sock.settimeout(0.5)
             self.addr = (host, port)
+            send_tcp_json(self.sock, {'type':'register'})
             self.sock.sendto(json.dumps({'type':'register'}).encode('utf-8'), self.addr)
             threading.Thread(target=self.udp_recv_loop,daemon=True).start()
 
@@ -69,15 +71,22 @@ class PongClient:
         if t == 'assign':
             self.side = msg['side']
             print(f"Przypisano stronę: {self.side}")
+        elif t == 'observer':
+            self.side = None
+            self.is_observer = True
+            print("Jestes obserwatorem. Naciśnij 1=LEFT 2=RIGHT 3=BOTTOM aby poprosić o miejsce.")
         elif t == 'state':
             self.state = msg['state']
             if self.protocol == 'tcp':
                 send_tcp_json(self.sock, {'type':'ack','seq': msg['seq']})
-        elif t == 'ping':  
+        elif t == 'ping':
             if self.protocol == 'tcp':
                 send_tcp_json(self.sock, {'type':'pong','ts': msg['ts']})
             else:
                 self.sock.sendto(json.dumps({'type':'pong','ts': msg['ts']}).encode('utf-8'), self.addr)
+        elif t == 'error':
+            print("Server error:", msg.get('msg'))
+
 
     def send_input(self):
         if self.input and self.side:
@@ -89,22 +98,42 @@ class PongClient:
             self.input = None
 
 
+    def request_side(self, side):
+        msg = {'type':'request_side', 'side': side}
+        if self.protocol == 'tcp':
+            send_tcp_json(self.sock, msg)
+        else:
+            self.sock.sendto(json.dumps(msg).encode('utf-8'), self.addr)
+
     def run(self):
         while self.running:
             for event in pygame.event.get():
                 if event.type==pygame.QUIT:
                     self.running=False
             keys=pygame.key.get_pressed()
-            if self.side=='LEFT' or self.side=='RIGHT':
-                if keys[pygame.K_UP]: self.input='UP'
-                elif keys[pygame.K_DOWN]: self.input='DOWN'
-            elif self.side=='BOTTOM':
-                if keys[pygame.K_LEFT]: self.input='LEFT'
-                elif keys[pygame.K_RIGHT]: self.input='RIGHT'
+
+            if not self.side:
+                if keys[pygame.K_1]:
+                    self.request_side('LEFT')
+                    time.sleep(0.2)  
+                elif keys[pygame.K_2]:
+                    self.request_side('RIGHT')
+                    time.sleep(0.2)
+                elif keys[pygame.K_3]:
+                    self.request_side('BOTTOM')
+                    time.sleep(0.2)
+            else:
+                if self.side=='LEFT' or self.side=='RIGHT':
+                    if keys[pygame.K_UP]: self.input='UP'
+                    elif keys[pygame.K_DOWN]: self.input='DOWN'
+                elif self.side=='BOTTOM':
+                    if keys[pygame.K_LEFT]: self.input='LEFT'
+                    elif keys[pygame.K_RIGHT]: self.input='RIGHT'
 
             self.send_input()
             self.draw()
             self.clock.tick(FPS)
+
 
     def draw(self):
         self.screen.fill((0,0,0))
