@@ -444,14 +444,14 @@ class PongServer:
 
     
 def draw_game_area(screen, x_off, y_off, game, font, serwer, title="", clients=None):
-    pygame.draw.rect(screen, (20,20,20), (x_off-2, y_off-2, WIDTH+400, HEIGHT+400))
-    pygame.draw.circle(screen, (255,255,255), (int(x_off + game.ball_x), int(y_off + game.ball_y)), 8)
+    pygame.draw.rect(screen, (255,218,185), (x_off-2, y_off-2, WIDTH+4, HEIGHT+4))
+    pygame.draw.circle(screen, (255,0,255), (int(x_off + game.ball_x), int(y_off + game.ball_y)), 8)
     pygame.draw.rect(screen, (0,200,0), (x_off + 0, int(y_off + game.paddles['LEFT'] - PADDLE_SIZE/2), 10, PADDLE_SIZE))
     pygame.draw.rect(screen, (200,0,0), (x_off + WIDTH - 10, int(y_off + game.paddles['RIGHT'] - PADDLE_SIZE/2), 10, PADDLE_SIZE))
     pygame.draw.rect(screen, (0,0,200), (x_off + int(game.paddles['BOTTOM'] - PADDLE_SIZE/2), y_off + HEIGHT - 10, PADDLE_SIZE, 10))
     pygame.draw.rect(screen, (60,60,60), (x_off, y_off, WIDTH, HEIGHT), 2)
-    title_surf = font.render(title, True, (240,240,0))
-    screen.blit(title_surf, (x_off, y_off + HEIGHT + 600))
+    title_surf = font.render(title, True, (12,12,12))
+    screen.blit(title_surf, (x_off, y_off + HEIGHT + 6))
 
     if clients is not None:
         for i, c in enumerate(clients.values()):
@@ -504,8 +504,7 @@ if __name__ == '__main__':
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
-        screen.fill((12, 12, 12))
+        screen.fill((255, 255, 255))
         draw_game_area(screen, 10, 10, tcp_server.game, font, tcp_server, 
                       title=f"TCP Server (port {tcp_port})", clients=tcp_server.clients) 
         draw_game_area(screen, WIDTH + 20, 10, udp_server.game, font, udp_server,
