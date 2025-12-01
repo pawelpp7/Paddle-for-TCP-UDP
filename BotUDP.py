@@ -4,15 +4,22 @@ import threading
 
 
 class BotUDP:
-    def __init__(self, host='127.0.0.1', port=53000, name='BotUDP'):
+    def __init__(self, host='127.0.0.1', port=53000, name='BotUDP',side=None):
         self.host = host; self.port = port; self.name = name
         self.addr = (host, port)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.settimeout(1.0)
         self.side = None
+        self.is_bot = True
+        is_observer = False
         self.running = True
+        reg_msg = {'type':'register','is_bot':True}
+        if side:
+            reg_msg['side'] = side
+        self.sock.sendto(json.dumps(reg_msg).encode('utf-8'), self.addr)
+
         try:
-            self.sock.sendto(json.dumps({'type':'register'}).encode('utf-8'), self.addr)
+            self.sock.sendto(json.dumps({'type':'register','is_bot':True,'side':self.side}).encode('utf-8'), self.addr)
         except Exception as e:
             print(f"{name}: register failed ->", e)
             self.running = False
@@ -38,6 +45,7 @@ class BotUDP:
 
             if t == 'assign':
                 self.side = msg.get('side')
+
             elif t == 'state':
                 state = msg.get('state')
                 self._decide_and_send(state)

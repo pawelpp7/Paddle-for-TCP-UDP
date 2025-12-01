@@ -6,14 +6,19 @@ import threading
 
 
 class BotTCP:
-    def __init__(self, host='127.0.0.1', port=52000, name='BotTCP'):
+    def __init__(self, host='127.0.0.1', port=52000, name='BotTCP',side=None):
         self.host = host; self.port = port; self.name = name
         self.side = None
+        self.is_bot = True
+        is_observer = False
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.settimeout(1.0)
         self.running = True
         try:
             self.sock.connect((host, port))
+            reg_msg = {'type':'register', 'is_bot':True}
+            if side: reg_msg['side'] = side
+            send_tcp_json(self.sock, reg_msg)
         except Exception as e:
             print(f"{name}: cannot connect TCP ->", e)
             self.running = False
